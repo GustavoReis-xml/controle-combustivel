@@ -350,24 +350,26 @@ class _TelaRegistroAbastecimentoState extends State<TelaRegistroAbastecimento> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Valor total do abastecimento',
-                              style: tema.textTheme.labelMedium?.copyWith(
-                                color: tema.colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Valor total do abastecimento',
+                                style: tema.textTheme.labelMedium?.copyWith(
+                                  color: tema.colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Preço por litro × quantidade de litros',
-                              style: tema.textTheme.bodySmall?.copyWith(
-                                color: tema.colorScheme.onSurfaceVariant,
+                              const SizedBox(height: 2),
+                              Text(
+                                'Preço por litro × quantidade de litros',
+                                style: tema.textTheme.bodySmall?.copyWith(
+                                  color: tema.colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Text(
