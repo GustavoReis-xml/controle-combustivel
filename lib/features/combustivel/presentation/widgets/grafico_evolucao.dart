@@ -121,15 +121,15 @@ class GraficoEvolucao extends StatelessWidget {
     final maior = valores.reduce(math.max);
     final amplitude = (maior - menor).abs();
     final margemY = amplitude == 0
-        ? math.max(maior.abs() * 0.25, 1.0)
-        : amplitude * 0.22;
+        ? math.max(maior.abs() * 0.25, 0.1)
+        : math.max(amplitude * 0.30, 0.02);
 
     final minY = math.max(0.0, menor - margemY);
     final maxY = maior + margemY;
-    final intervaloY = math.max((maxY - minY) / 4, 0.1);
+    final intervaloY = math.max((maxY - minY) / 4, 0.01);
 
-    final minX = spots.length == 1 ? -0.5 : 0.0;
-    final maxX = spots.length == 1 ? 0.5 : (spots.length - 1).toDouble();
+    final minX = spots.length == 1 ? -0.5 : -0.22;
+    final maxX = spots.length == 1 ? 0.5 : (spots.length - 1) + 0.22;
     final passoX = spots.length <= 5 ? 1 : (spots.length / 4).ceil();
 
     return LineChart(
@@ -138,7 +138,7 @@ class GraficoEvolucao extends StatelessWidget {
         maxX: maxX,
         minY: minY,
         maxY: maxY,
-        clipData: const FlClipData.all(),
+        clipData: const FlClipData.none(),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,

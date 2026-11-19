@@ -18,6 +18,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Roboto',
       colorScheme: esquema,
       scaffoldBackgroundColor: const Color(0xFFF3F6F4),
       appBarTheme: AppBarTheme(
@@ -27,10 +28,20 @@ class AppTheme {
         scrolledUnderElevation: 1,
         centerTitle: false,
         titleTextStyle: TextStyle(
+          fontFamily: 'Roboto',
           color: esquema.onSurface,
           fontSize: 20,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.2,
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: esquema.primary,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        highlightElevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
         ),
       ),
       cardTheme: CardThemeData(
@@ -71,6 +82,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: const TextStyle(
+            fontFamily: 'Roboto',
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -83,6 +95,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(12),
           ),
           textStyle: const TextStyle(
+            fontFamily: 'Roboto',
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -90,10 +103,11 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
-        elevation: 2,
+        elevation: 0,
         indicatorColor: esquema.primaryContainer,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (estados) => TextStyle(
+            fontFamily: 'Roboto',
             fontSize: 12,
             fontWeight: estados.contains(WidgetState.selected)
                 ? FontWeight.w700

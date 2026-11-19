@@ -101,6 +101,11 @@ Future<void> _carregarFontesReais() async {
     'Roboto-Bold.ttf',
     'Roboto-Light.ttf',
   ]);
+  await carregarFamilia('FlutterTest', [
+    'Roboto-Regular.ttf',
+    'Roboto-Medium.ttf',
+    'Roboto-Bold.ttf',
+  ]);
   await carregarFamilia('MaterialIcons', ['MaterialIcons-Regular.otf']);
 }
 
@@ -121,6 +126,7 @@ Future<void> _salvarCaptura(
   GlobalKey chaveCaptura,
   String nomeArquivo,
 ) async {
+  FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
   final boundary =
       chaveCaptura.currentContext!.findRenderObject()! as RenderRepaintBoundary;
@@ -269,10 +275,10 @@ void main() {
     await _salvarCaptura(tester, chaveDashboard, '02_dashboard_consumo.png');
 
     // 3. Captura: Dashboard rolado (Gráfico de Custo R$/km + Valor por Abastecimento)
-    await tester.drag(find.byType(ListView).first, const Offset(0, -560));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -680));
     await _salvarCaptura(tester, chaveDashboard, '03_dashboard_graficos.png');
 
-    // 4. Captura: Histórico de abastecimentos
+    // 4. Captura: Histórico de abastecimentos (rolado suavemente para exibir também o #1 Referência inicial)
     final chaveHistorico = GlobalKey();
     await tester.pumpWidget(
       _molduraApp(
@@ -284,6 +290,8 @@ void main() {
         chaveHistorico,
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).first, const Offset(0, -240));
     await _salvarCaptura(
       tester,
       chaveHistorico,

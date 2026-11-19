@@ -248,12 +248,23 @@ class _TelaRegistroAbastecimentoState extends State<TelaRegistroAbastecimento> {
                 ),
                 const SizedBox(height: 8),
                 SegmentedButton<TipoCombustivel>(
+                  showSelectedIcon: false,
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    padding: WidgetStatePropertyAll(
+                      EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                    ),
+                  ),
                   segments: TipoCombustivel.values
                       .map(
                         (tipo) => ButtonSegment<TipoCombustivel>(
                           value: tipo,
-                          label: Text(tipo.rotulo),
-                          icon: Icon(tipo.icone, size: 18),
+                          label: Text(
+                            tipo.rotulo,
+                            maxLines: 1,
+                            softWrap: false,
+                          ),
+                          icon: Icon(tipo.icone, size: 17),
                         ),
                       )
                       .toList(),

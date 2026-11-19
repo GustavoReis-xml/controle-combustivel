@@ -87,8 +87,9 @@ class GraficoValoresAbastecimento extends StatelessWidget {
     final maiorValor = indicadores
         .map((e) => e.abastecimento.valorTotal)
         .reduce(math.max);
-    final maxY = math.max(maiorValor * 1.2, 10.0);
-    final intervaloY = math.max(maxY / 4, 1.0);
+    final bruto = math.max(maiorValor * 1.18, 40.0);
+    final maxY = ((bruto / 40).ceil() * 40).toDouble();
+    final intervaloY = maxY / 4;
     final passoX = indicadores.length <= 6
         ? 1
         : (indicadores.length / 5).ceil();
