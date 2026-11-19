@@ -3,12 +3,13 @@ import 'package:sqflite/sqflite.dart';
 
 class BancoCombustivel {
   BancoCombustivel({
-    this._caminho,
+    String? caminho,
     Future<Database> Function(String, OpenDatabaseOptions)? abrir,
-  }) : _abrir =
+  }) : _caminho = caminho,
+       _abrir =
            abrir ??
-           ((caminho, opcoes) =>
-               databaseFactory.openDatabase(caminho, options: opcoes));
+           ((caminhoBanco, opcoes) =>
+               databaseFactory.openDatabase(caminhoBanco, options: opcoes));
 
   final String? _caminho;
   final Future<Database> Function(String, OpenDatabaseOptions) _abrir;
