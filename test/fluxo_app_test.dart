@@ -1,33 +1,77 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:controle_combustivel/app.dart';
 import 'package:controle_combustivel/features/combustivel/data/database/banco_combustivel.dart';
 import 'package:controle_combustivel/features/combustivel/data/repositories/repositorio_combustivel.dart';
+import 'package:controle_combustivel/features/combustivel/models/abastecimento.dart';
+import 'package:controle_combustivel/features/combustivel/models/veiculo.dart';
 import 'package:controle_combustivel/features/combustivel/services/brasil_api_fipe_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:path/path.dart' as p;
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class RepositorioMemoria extends RepositorioCombustivel {
+  RepositorioMemoria() : super(BancoCombustivel());
+
+  Veiculo? _veiculo;
+  final List<Abastecimento> _abastecimentos = [];
+  int _proximoVeiculoId = 1;
+  int _proximoAbastecimentoId = 1;
+
+  @override
+  Future<Veiculo?> obterVeiculoAtual() async => _veiculo;
+
+  @override
+  Future<Veiculo> cadastrarVeiculo(Veiculo veiculo) async {
+    if (_veiculo != null) {
+      throw StateError('Já existe um veículo cadastrado.');
+    }
+    _veiculo = veiculo.copyWith(id: _proximoVeiculoId++);
+    return _veiculo!;
+  }
+
+  @override
+  Future<void> excluirVeiculoAtual() async {
+    _veiculo = null;
+    _abastecimentos.clear();
+  }
+
+  @override
+  Future<Abastecimento> inserirAbastecimento(
+    Abastecimento abastecimento,
+  ) async {
+    final salvo = abastecimento.copyWith(id: _proximoAbastecimentoId++);
+    _abastecimentos.add(salvo);
+    return salvo;
+  }
+
+  @override
+  Future<List<Abastecimento>> listarAbastecimentos(int veiculoId) async {
+    final lista = _abastecimentos
+        .where((a) => a.veiculoId == veiculoId)
+        .toList()
+      ..sort((a, b) {
+        final porData = a.dataHora.compareTo(b.dataHora);
+        if (porData != 0) return porData;
+        return a.quilometragem.compareTo(b.quilometragem);
+      });
+    return lista;
+  }
+
+  @override
+  Future<void> excluirAbastecimento(int id) async {
+    _abastecimentos.removeWhere((a) => a.id == id);
+  }
+}
 
 void main() {
-  sqfliteFfiInit();
-  late Directory pasta;
-  late BancoCombustivel banco;
-  late RepositorioCombustivel repositorio;
+  late RepositorioMemoria repositorio;
   late BrasilApiFipeService fipeService;
 
-  setUp(() async {
-    pasta = await Directory.systemTemp.createTemp('combustivel_widget_');
-    banco = BancoCombustivel(
-      caminho: p.join(pasta.path, 'controle_combustivel.db'),
-      abrir: (caminho, opcoes) =>
-          databaseFactoryFfi.openDatabase(caminho, options: opcoes),
-    );
-    repositorio = RepositorioCombustivel(banco);
+  setUp(() {
+    repositorio = RepositorioMemoria();
     fipeService = BrasilApiFipeService(
       client: MockClient((req) async {
         if (req.url.path == '/api/fipe/marcas/v1/carros') {
@@ -52,15 +96,10 @@ void main() {
     );
   });
 
-  tearDown(() async {
-    await banco.fechar();
-    await pasta.delete(recursive: true);
-  });
-
   testWidgets(
     'fluxo completo: cadastrar veículo via BrasilAPI, abastecer, ver gráficos e excluir',
     (tester) async {
-      tester.view.physicalSize = const Size(430, 1400);
+      tester.view.physicalSize = const Size(430, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);

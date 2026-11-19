@@ -21,7 +21,48 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:path/path.dart' as p;
-import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+class _RepositorioCaptura extends RepositorioCombustivel {
+  _RepositorioCaptura() : super(BancoCombustivel());
+
+  Veiculo? _veiculo;
+  final List<Abastecimento> _abastecimentos = [];
+  int _proximoVeiculoId = 1;
+  int _proximoAbastecimentoId = 1;
+
+  @override
+  Future<Veiculo?> obterVeiculoAtual() async => _veiculo;
+
+  @override
+  Future<Veiculo> cadastrarVeiculo(Veiculo veiculo) async {
+    _veiculo = veiculo.copyWith(id: _proximoVeiculoId++);
+    return _veiculo!;
+  }
+
+  @override
+  Future<void> excluirVeiculoAtual() async {
+    _veiculo = null;
+    _abastecimentos.clear();
+  }
+
+  @override
+  Future<Abastecimento> inserirAbastecimento(
+    Abastecimento abastecimento,
+  ) async {
+    final salvo = abastecimento.copyWith(id: _proximoAbastecimentoId++);
+    _abastecimentos.add(salvo);
+    return salvo;
+  }
+
+  @override
+  Future<List<Abastecimento>> listarAbastecimentos(int veiculoId) async =>
+      List<Abastecimento>.from(_abastecimentos);
+
+  @override
+  Future<void> excluirAbastecimento(int id) async {
+    _abastecimentos.removeWhere((a) => a.id == id);
+  }
+}
 
 Future<void> _carregarFontesReais() async {
   final fontDirEnv = Platform.environment['FLUTTER_MATERIAL_FONTS'];
@@ -94,8 +135,6 @@ Future<void> _salvarCaptura(
 }
 
 void main() {
-  sqfliteFfiInit();
-
   testWidgets('gera capturas reais das telas principais do aplicativo', (
     tester,
   ) async {
@@ -106,15 +145,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final pasta = await tester.runAsync(
-      () => Directory.systemTemp.createTemp('capturas_combustivel_'),
-    );
-    final banco = BancoCombustivel(
-      caminho: p.join(pasta!.path, 'controle_combustivel.db'),
-      abrir: (caminho, opcoes) =>
-          databaseFactoryFfi.openDatabase(caminho, options: opcoes),
-    );
-    final repositorio = RepositorioCombustivel(banco);
+    final repositorio = _RepositorioCaptura();
     final fipeService = BrasilApiFipeService(
       client: MockClient((req) async {
         if (req.url.path == '/api/fipe/marcas/v1/carros') {
@@ -142,13 +173,6 @@ void main() {
       }),
     );
 
-    addTearDown(() async {
-      await tester.runAsync(() async {
-        await banco.fechar();
-        await pasta.delete(recursive: true);
-      });
-    });
-
     // 1. Captura: Cadastro de veículo com BrasilAPI FIPE preenchido
     final chaveCadastro = GlobalKey();
     await tester.pumpWidget(
@@ -173,68 +197,62 @@ void main() {
     );
     await _salvarCaptura(tester, chaveCadastro, '01_cadastro_veiculo.png');
 
-    // Popula dados realistas no SQLite para as telas seguintes
-    final veiculo = await tester.runAsync(() async {
-      final v = await repositorio.cadastrarVeiculo(
-        Veiculo(
-          tipoVeiculo: TipoVeiculoFipe.carros,
-          marca: 'Honda',
-          modelo: 'Civic Sedan EX 2.0 Flex 16V Aut.',
-          ano: 2022,
-          cilindrada: '2.0',
-        ),
-      );
-      final registros = [
-        Abastecimento(
-          veiculoId: v.id!,
-          tipoCombustivel: TipoCombustivel.gasolina,
-          precoPorLitro: 5.89,
-          quilometragem: 42100,
-          litros: 42.0,
-          dataHora: DateTime(2026, 10, 15, 8, 30),
-        ),
-        Abastecimento(
-          veiculoId: v.id!,
-          tipoCombustivel: TipoCombustivel.gasolina,
-          precoPorLitro: 5.95,
-          quilometragem: 42590,
-          litros: 40.5,
-          dataHora: DateTime(2026, 10, 23, 18, 15),
-        ),
-        Abastecimento(
-          veiculoId: v.id!,
-          tipoCombustivel: TipoCombustivel.etanol,
-          precoPorLitro: 3.99,
-          quilometragem: 42950,
-          litros: 41.0,
-          dataHora: DateTime(2026, 11, 1, 9, 45),
-        ),
-        Abastecimento(
-          veiculoId: v.id!,
-          tipoCombustivel: TipoCombustivel.etanol,
-          precoPorLitro: 4.09,
-          quilometragem: 43325,
-          litros: 40.2,
-          dataHora: DateTime(2026, 11, 9, 17, 20),
-        ),
-        Abastecimento(
-          veiculoId: v.id!,
-          tipoCombustivel: TipoCombustivel.gasolina,
-          precoPorLitro: 5.79,
-          quilometragem: 43835,
-          litros: 39.8,
-          dataHora: DateTime(2026, 11, 17, 19, 10),
-        ),
-      ];
-      for (final reg in registros) {
-        await repositorio.inserirAbastecimento(reg);
-      }
-      return v;
-    });
-
-    final abastecimentos = await tester.runAsync(
-      () => repositorio.listarAbastecimentos(veiculo!.id!),
+    // Popula dados realistas em memória para as telas seguintes
+    final veiculo = await repositorio.cadastrarVeiculo(
+      Veiculo(
+        tipoVeiculo: TipoVeiculoFipe.carros,
+        marca: 'Honda',
+        modelo: 'Civic Sedan EX 2.0 Flex 16V Aut.',
+        ano: 2022,
+        cilindrada: '2.0',
+      ),
     );
+    final registros = [
+      Abastecimento(
+        veiculoId: veiculo.id!,
+        tipoCombustivel: TipoCombustivel.gasolina,
+        precoPorLitro: 5.89,
+        quilometragem: 42100,
+        litros: 42.0,
+        dataHora: DateTime(2026, 10, 15, 8, 30),
+      ),
+      Abastecimento(
+        veiculoId: veiculo.id!,
+        tipoCombustivel: TipoCombustivel.gasolina,
+        precoPorLitro: 5.95,
+        quilometragem: 42590,
+        litros: 40.5,
+        dataHora: DateTime(2026, 10, 23, 18, 15),
+      ),
+      Abastecimento(
+        veiculoId: veiculo.id!,
+        tipoCombustivel: TipoCombustivel.etanol,
+        precoPorLitro: 3.99,
+        quilometragem: 42950,
+        litros: 41.0,
+        dataHora: DateTime(2026, 11, 1, 9, 45),
+      ),
+      Abastecimento(
+        veiculoId: veiculo.id!,
+        tipoCombustivel: TipoCombustivel.etanol,
+        precoPorLitro: 4.09,
+        quilometragem: 43325,
+        litros: 40.2,
+        dataHora: DateTime(2026, 11, 9, 17, 20),
+      ),
+      Abastecimento(
+        veiculoId: veiculo.id!,
+        tipoCombustivel: TipoCombustivel.gasolina,
+        precoPorLitro: 5.79,
+        quilometragem: 43835,
+        litros: 39.8,
+        dataHora: DateTime(2026, 11, 17, 19, 10),
+      ),
+    ];
+    for (final reg in registros) {
+      await repositorio.inserirAbastecimento(reg);
+    }
+    final abastecimentos = await repositorio.listarAbastecimentos(veiculo.id!);
 
     // 2. Captura: Dashboard (KPIs + Gráfico de Consumo km/L)
     final chaveDashboard = GlobalKey();
@@ -251,7 +269,7 @@ void main() {
     await _salvarCaptura(tester, chaveDashboard, '02_dashboard_consumo.png');
 
     // 3. Captura: Dashboard rolado (Gráfico de Custo R$/km + Valor por Abastecimento)
-    await tester.drag(find.byType(ListView).first, const Offset(0, -580));
+    await tester.drag(find.byType(ListView).first, const Offset(0, -560));
     await _salvarCaptura(tester, chaveDashboard, '03_dashboard_graficos.png');
 
     // 4. Captura: Histórico de abastecimentos
@@ -266,16 +284,20 @@ void main() {
         chaveHistorico,
       ),
     );
-    await _salvarCaptura(tester, chaveHistorico, '04_historico_abastecimentos.png');
+    await _salvarCaptura(
+      tester,
+      chaveHistorico,
+      '04_historico_abastecimentos.png',
+    );
 
     // 5. Captura: Registro de novo abastecimento (com prévia ao vivo)
     final chaveRegistro = GlobalKey();
     await tester.pumpWidget(
       _molduraApp(
         TelaRegistroAbastecimento(
-          veiculo: veiculo!,
+          veiculo: veiculo,
           repositorio: repositorio,
-          abastecimentosExistentes: abastecimentos!,
+          abastecimentosExistentes: abastecimentos,
         ),
         chaveRegistro,
       ),
